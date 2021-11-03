@@ -27,7 +27,7 @@ def Procesar():
 def ObtenerResumenRango():
     pass
 
-@app.route('/Grafica', methods=['GET'])
+@app.route('/nit', methods=['GET'])
 def ObtenerGrafica():
     pass
 
