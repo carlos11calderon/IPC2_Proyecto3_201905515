@@ -1,4 +1,4 @@
-class DocumentoTE: 
+class Autorizaciones: 
 
     def __init__(self, Fecha, FacturasRecibidas, Errores, facturasCorrectas,cantEmisores,cantReceptores, Aprobaciones):
         self.Fecha=Fecha

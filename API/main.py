@@ -20,6 +20,7 @@ def ObtenerDatos():
 
 @app.route('/Procesar', methods=['GET'])
 def Procesar():
+    gestor.salidaAuto()
     gestor.ArchivoSalida()
     return '{"data":"Listo para mostrar"}'
 

@@ -5,9 +5,5 @@ import requests
 endpoint = 'http://192.168.1.15:5000/'
 
 def home(request):
-    respone = requests.get(endpoint+'')
-    characters = respone.json()
-    context = {
-        'characters':characters
-    }
+    respone = requests.get(endpoint+'ConsultaDatos')
     return render(request, 'index.html')

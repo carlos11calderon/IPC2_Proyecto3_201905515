@@ -8,7 +8,9 @@ from DocumentoTE import DocumentoTE
 from tkinter import filedialog, Tk
 from tkinter.filedialog import *
 from tkinter import * 
-import Aprobacion, Autorizaciones, Errores
+from Aprobacion import Aprobacion 
+from Autorizaciones import Autorizaciones
+from Errores import Errores
 class Gestor:
     def __init__(self):
         self.ListaDTE = []
@@ -46,16 +48,16 @@ class Gestor:
                         ErrorNitR = True
                 elif ele.tag == "VALOR":
                     Valor = ele.text
-                    Valor = round(int(Valor),2)
+                    Valor = round(float(Valor),2)
                 elif ele.tag == "IVA":
                     Iva = ele.text
-                    if self.validarIva(Valor)==float(Iva):
+                    if self.ValidarIva(Valor)==float(Iva):
                         ErrorIva = False
                     else:
                         ErrorIva=True
                 elif ele.tag == "TOTAL":
                     Total = ele.text
-                    if self.validarTotal(Valor,float(Iva))==float(Total):
+                    if self.ValidarTotal(Valor,float(Iva))==float(Total):
                         ErrorTotal=False
                     else:
                         ErrorTotal=True
@@ -68,7 +70,7 @@ class Gestor:
         iva = round(valor*0.12,2)
         return iva
 
-    def ValidarEsCorrecta(ErrorNitE,ErrorNitR, ErrorIva, ErrorTotal):
+    def ValidarEsCorrecta(self,ErrorNitE,ErrorNitR, ErrorIva, ErrorTotal):
         if ErrorNitE==True or ErrorNitR==True or ErrorIva==True or ErrorTotal==True:
             return False
         else:
@@ -78,23 +80,34 @@ class Gestor:
         return valor+iva
 
     def MostrarSalida(self):
-        f=open('salidaPrueba.xml')
+        f=open('Salidas\salidaPrueba.xml')
         return Response(response=f.read(),mimetype='text/plain',content_type='text/plain')  
                     
     def ArchivoSalida(self):
-        top =  ET.Element("SalidaPrueba")
-        for i in self.ListaDTE:
-            Dtee = ET.SubElement(top,"DTE")
-            for j in i:
-                tiempo = ET.SubElement(Dtee,'TIEMPO').text=j.tiempo
-                referencia = ET.SubElement(Dtee,'REFERENCIA').text = j.referencia
-                nitEmisor = ET.SubElement(Dtee,'NIT_EMISOR').text=j.nitE
-                nitReceptor = ET.SubElement(Dtee,'NIT_RECEPTOR').text=j.nitR
-                valor = ET.SubElement(Dtee,'VALOR').text=j.valor
-                iva = ET.SubElement(Dtee,'IVA').text=j.iva
-                total = ET.SubElement(Dtee,'TOTAL').text = j.total
+        top =  ET.Element("LISTAAUTORIZACIONES")
+        Autorizacion = ET.SubElement(top,"AUTORIZACION")
+        for i in self.ListaSalidaAuto:
+            fecha = ET.SubElement(Autorizacion,"FEHCA").text = i.Fecha
+            Facturas_Recibidas = ET.SubElement(Autorizacion,'FACTURAS_RECIBIDAS').text=str(i.FacturasRecibidas)
+            Errores = ET.SubElement(Autorizacion,'ERRORES')
+            for j in i.Errores:
+                E_NitE = ET.SubElement(Errores, 'NIT_EMISOR').text = str(j.ErrorNitE)
+                ErrorNitR = ET.SubElement(Errores, 'NIT_RECEPTOR').text = str(j.ErrorNitR)
+                ErrorIva = ET.SubElement(Errores, 'IVA').text = str(j.ErrorIva)
+                ErrorTotal = ET.SubElement(Errores, 'TOTAL').text = str(j.ErrorTotal)
+                ErrorReferencia = ET.SubElement(Errores, 'REFERENCIA_DUPLICADA').text = str(j.ErrorReferencia)
+            Facturas_Correctas = ET.SubElement(Autorizacion,'FACTURAS_CORRECTAS').text= str(i.FacturasCorrectas)
+            cantEmisores = ET.SubElement(Autorizacion,'CANTIDAD_EMISORES').text= str(i.cantEmisores)
+            cantReceptores = ET.SubElement(Autorizacion,'CANTIDAD_RECEPTORES').text= str(i.cantReceptores)
+            Aprobacionees = ET.SubElement(Autorizacion, "APROBACION")
+            for n in i.Aprobaciones:
+                NitE = ET.SubElement(Aprobacionees,'NIT_EMISOR').attrib =str(n.referencia)
+                NitE.text = n.NitE
+                referencia = ET.SubElement(Aprobacionees,'TOTAL').text = str(n.Referencia)
         archivo = ET.ElementTree(top)
-        archivo.write('salidaPrueba.xml')
+        
+        archivo.write('Salidas\salidaPrueba.xml',encoding='utf-8',xml_declaration=True)
+        
         
     def isNumero(self,caracter):##metodo que retorna si es un digito
         if ((ord(caracter) >= 48 and ord(caracter) <= 57)):
@@ -210,50 +223,55 @@ class Gestor:
         cantidadNitR=0
         Aprobaciones=[]
         for x in self.ListaDTE:
-            if x.Revisado==False:
-                fecha = x.tiempo
-                cantidadFacturas = self.CantidadFacturas(fecha)
-                FacturasCorrectas = self.CantFacturasCorrectas(fecha)
-                cantidadNitE = self.CantidadNitEC(fecha)
-                cantidadNitR = self.CantidadNitRC(fecha)
-                Errores = self.ErroresListaDte(fecha)
-                Aprobaciones = self.Aprobaciones(fecha)
-                
+            for y in x:
+                if y.Revisada==False:
+                    fecha = y.tiempo
+                    cantidadFacturas = self.CantidadFacturas(fecha)
+                    FacturasCorrectas = self.CantFacturasCorrectas(fecha)
+                    cantidadNitE = self.CantidadNitEC(fecha)
+                    cantidadNitR = self.CantidadNitRC(fecha)
+                    Erroress = self.ErroresListaDte(fecha)
+                    Aprobaciones = self.Aprobaciones(fecha)
+                self.ListaSalidaAuto.append(Autorizaciones(fecha, cantidadFacturas, Erroress, FacturasCorrectas, cantidadNitE, cantidadNitR, Aprobaciones ))       
+                    
 
     def CantidadFacturas(self, fecha):
         contadorCantidadFacturas=0
         for x in self.ListaDTE:
-            if x.tiempo == fecha:
-                contadorCantidadFacturas+=1
-                x.Revisado==True
+            for y in x:
+                if y.tiempo == fecha:
+                    contadorCantidadFacturas+=1
+                    y.Revisada==True
         return contadorCantidadFacturas    
 
     def CantFacturasCorrectas(self, fecha):
         contadorCorrectas=0
         for x in self.ListaDTE:
-            if x.tiempo == fecha:
-                if x.esCorrecta == True:
-                    contadorCorrectas+=1
+            for y in x:
+                if y.tiempo == fecha:
+                    if y.Correcta == True:
+                        contadorCorrectas+=1
         return contadorCorrectas        
 
     def CantidadNitEC(self, fecha):
         contadorCantidadNitEC=0
         for x in self.ListaDTE:
-            if x.tiempo == fecha:
-                if x.ErrorNitE==False:
-                    contadorCantidadNitEC+=1
+            for y in x:
+                if y.tiempo == fecha:
+                    if y.ErrorNitE==False:
+                        contadorCantidadNitEC+=1
         return contadorCantidadNitEC
 
     def CantidadNitRC(self, fecha):
         contador=0
         for x in self.ListaDTE:
-            if x.tiempo==fecha:
-                if x.ErrorNitR==False:
-                    contador+=1
+            for y in x:
+                if y.tiempo==fecha:
+                    if y.ErrorNitR==False:
+                        contador+=1
         return contador
 
     def ErroresListaDte(self, fecha):
-        errores = []
         ErrorEmisor = 0
         ErrorReceptor = 0 
         ErrorIva = 0
@@ -263,40 +281,45 @@ class Gestor:
         ErrorReceptor = self.ErrorReceptores(fecha)
         ErrorIva= self.ErrorIva(fecha)
         ErrorTotal= self.ErrorTotal(fecha)
-        errores.append(Errores(ErrorEmisor,ErrorReceptor, ErrorIva, ErrorTotal, ErrorReferencia))
-        return errores
+        err = []
+        err.append(Errores(ErrorEmisor,ErrorReceptor, ErrorIva, ErrorTotal, ErrorReferencia))
+        return err
 
     def ErrorEmisores(self, fecha):
         contador = 0 
         for x in self.ListaDTE:
-            if x.tiempo==fecha:
-                if x.ErrorNitE==True:
-                    contador+=1
+            for y in x:
+                if y.tiempo==fecha:
+                    if y.ErrorNitE==True:
+                        contador+=1
         return contador
         
     #lista errores
     def ErrorReceptores(self,fecha):
         contador = 0 
         for x in self.ListaDTE:
-            if x.tiempo==fecha:
-                if x.ErrorNitR==True:
-                    contador+=1
+            for y in x:
+                if y.tiempo==fecha:
+                    if y.ErrorNitR==True:
+                        contador+=1
         return contador
 
     def ErrorIva(self,fecha):
         contador = 0 
         for x in self.ListaDTE:
-            if x.tiempo==fecha:
-                if x.ErrorIva==True:
-                    contador+=1
+            for y in x:
+                if y.tiempo==fecha:
+                    if y.ErrorIva==True:
+                        contador+=1
         return contador
 
     def ErrorTotal(self, fecha):
         contador = 0 
         for x in self.ListaDTE:
-            if x.tiempo==fecha:
-                if x.ErrorTotal==True:
-                    contador+=1
+            for y in x:
+                if y.tiempo==fecha:
+                    if y.ErrorTotal==True:
+                        contador+=1
         return contador
 
     def ErrorReferencia(self,fecha):
@@ -310,16 +333,21 @@ class Gestor:
         aprobado=[]
         contador=0
         for x in self.ListaDTE:
-            if x.tiempo==fecha:
-                if x.esCorrecta==True:
-                    contador+=1
-                    NitAprobado=x.NitE
-                    referencia = x.referencia
-                    codigoAprobacion=self.codigoAprobacion(fecha,contador)
-                    aprobado.append(Aprobacion(NitAprobado,referencia,codigoAprobacion))
+            for y in x:
+                if y.tiempo==fecha:
+                    if y.Correcta==True:
+                        contador+=1
+                        NitAprobado=y.NitE
+                        referencia = y.referencia
+                        codigoAprobacion=self.codigoAprobacion(fecha,contador)
+                        aprobado.append(Aprobacion(NitAprobado,referencia,codigoAprobacion))
         return aprobado
 
     def codigoAprobacion(self, fecha,contador):
+        codigo = fecha[6]+fecha[7]+fecha[8]+fecha[9]+fecha[3]+fecha[4]+fecha[0]+fecha[1]
+        codigo+='00000000'
+        codigo= int(codigo)
+        return codigo+contador
         codigo = fecha[6]+fecha[7]+fecha[8]+fecha[9]+fecha[3]+fecha[4]+fecha[0]+fecha[1]
         codigo+='00000000'
         codigo= int(codigo)
