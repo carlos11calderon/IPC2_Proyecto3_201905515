@@ -1,5 +1,5 @@
 import json
-from os import error, truncate
+import os
 from xml.etree.ElementTree import TreeBuilder
 from _elementtree import *
 import xml.etree.cElementTree as ET
@@ -33,35 +33,57 @@ class Gestor:
                 elif ele.tag == "NIT_EMISOR":
                     NitEmisor = ele.text
                     NitEmisor= NitEmisor.replace(' ','')
-                    niit = self.ValidarNit(NitEmisor)
-                    if niit == True:
-                        ErrorNitE = False
-                    else:
-                        ErrorNitE = True
+                    NitEmisor= NitEmisor.replace('\n','')
+                    try:
+                        niit = self.ValidarNit(NitEmisor)
+                        if niit == True:
+                            ErrorNitE = False
+                        else:
+                            ErrorNitE = True
+                    except:
+                        ErrorNitE=True
                 elif ele.tag == "NIT_RECEPTOR":
                     NitReceptor = ele.text
                     NitReceptor = NitReceptor.replace(' ','')
-                    niit = self.ValidarNit(NitReceptor)
-                    if niit == True:
-                        ErrorNitR = False
-                    else:
-                        ErrorNitR = True
+                    NitReceptor= NitReceptor.replace('\n','')
+                    try:
+                        niit = self.ValidarNit(NitReceptor)
+                        if niit == True:
+                            ErrorNitR = False
+                        else:
+                            ErrorNitR = True
+                    except:
+                        ErrorNitR=True
                 elif ele.tag == "VALOR":
+                    ErrorValor=False
                     Valor = ele.text
-                    Valor = round(float(Valor),2)
+                    Valor =Valor.replace(' ','')
+                    Valor =Valor.replace('\n','')
+                    try:
+                        Valor = round(float(Valor),2)
+                    except:
+                        ErrorValor=True
                 elif ele.tag == "IVA":
                     Iva = ele.text
-                    if self.ValidarIva(Valor)==float(Iva):
-                        ErrorIva = False
-                    else:
+                    Iva =Iva.replace(' ','')
+                    Iva =Iva.replace('\n','')
+                    try:
+                        if self.ValidarIva(Valor)==float(Iva):
+                            ErrorIva = False
+                        else:
+                            ErrorIva=True
+                    except:
                         ErrorIva=True
                 elif ele.tag == "TOTAL":
                     Total = ele.text
-                    if self.ValidarTotal(Valor,float(Iva))==float(Total):
-                        ErrorTotal=False
-                    else:
+                    try:
+                        if self.ValidarTotal(Valor,float(Iva))==float(Total):
+                            ErrorTotal=False
+                        else:
+                            ErrorTotal=True
+                    except:
                         ErrorTotal=True
-            esCorrecta = self.ValidarEsCorrecta(ErrorNitE,ErrorNitR, ErrorIva, ErrorTotal)
+            esCorrecta = self.ValidarEsCorrecta(ErrorNitE,ErrorNitR, ErrorIva, ErrorTotal, ErrorValor)
             dteTemp.append(DocumentoTE(fecha, Referencia, NitEmisor, NitReceptor, Valor, Iva, Total, ErrorNitE, ErrorNitR, ErrorIva, ErrorTotal, esCorrecta))
             self.ListaDTE.append(dteTemp)
             dteTemp = []
@@ -70,8 +92,8 @@ class Gestor:
         iva = round(valor*0.12,2)
         return iva
 
-    def ValidarEsCorrecta(self,ErrorNitE,ErrorNitR, ErrorIva, ErrorTotal):
-        if ErrorNitE==True or ErrorNitR==True or ErrorIva==True or ErrorTotal==True:
+    def ValidarEsCorrecta(self,ErrorNitE,ErrorNitR, ErrorIva, ErrorTotal, ErrorValor):
+        if ErrorNitE==True or ErrorNitR==True or ErrorIva==True or ErrorTotal==True or ErrorValor==True:
             return False
         else:
             return True
@@ -80,7 +102,7 @@ class Gestor:
         return valor+iva
 
     def MostrarSalida(self):
-        f=open('Salidas\salidaPrueba.xml')
+        f=open('API\Salidas\salidaPrueba.xml')
         return Response(response=f.read(),mimetype='text/plain',content_type='text/plain')  
                     
     def ArchivoSalida(self):
@@ -99,14 +121,13 @@ class Gestor:
             Facturas_Correctas = ET.SubElement(Autorizacion,'FACTURAS_CORRECTAS').text= str(i.FacturasCorrectas)
             cantEmisores = ET.SubElement(Autorizacion,'CANTIDAD_EMISORES').text= str(i.cantEmisores)
             cantReceptores = ET.SubElement(Autorizacion,'CANTIDAD_RECEPTORES').text= str(i.cantReceptores)
-            Aprobacionees = ET.SubElement(Autorizacion, "APROBACION")
+            ListadoA = ET.SubElement(Autorizacion, 'LISTADO_AUTORIZACIONES')
             for n in i.Aprobaciones:
-                NitE = ET.SubElement(Aprobacionees,'NIT_EMISOR').attrib =str(n.referencia)
-                NitE.text = n.NitE
-                referencia = ET.SubElement(Aprobacionees,'TOTAL').text = str(n.Referencia)
+                Aprobacionees = ET.SubElement(ListadoA, "APROBACION")
+                NitE = ET.SubElement(Aprobacionees,'NIT_EMISOR').text =str(n.nitE)
+                CodigoAprobacion = ET.SubElement(Aprobacionees,'TOTAL').text = str(n.CodAprobacion)
         archivo = ET.ElementTree(top)
-        
-        archivo.write('Salidas\salidaPrueba.xml',encoding='utf-8',xml_declaration=True)
+        archivo.write('API\Salidas\salidaPrueba.xml',encoding='utf-8',xml_declaration=True)
         
         
     def isNumero(self,caracter):##metodo que retorna si es un digito
@@ -197,9 +218,8 @@ class Gestor:
             mul=0
             mul = int(nit[x])*tam
             tam-=1
-            if tam ==1:
-                break 
             suma+=mul
+        suma-=int(v)
         print(suma)
         modular = suma%11
         resultado1 = 11-modular
@@ -337,7 +357,7 @@ class Gestor:
                 if y.tiempo==fecha:
                     if y.Correcta==True:
                         contador+=1
-                        NitAprobado=y.NitE
+                        NitAprobado=y.nitE
                         referencia = y.referencia
                         codigoAprobacion=self.codigoAprobacion(fecha,contador)
                         aprobado.append(Aprobacion(NitAprobado,referencia,codigoAprobacion))
@@ -352,3 +372,11 @@ class Gestor:
         codigo+='00000000'
         codigo= int(codigo)
         return codigo+contador
+
+    def AyudaDatosEstudiante(self):
+        datos = '{"Nombre":"Carlos Augusto calderon estrada", "carné":"201905515", "Curso":"IPC2", "Seccion":"D"}'
+        
+        return datos
+
+    def openEnsayo(self):
+        os.startfile('API\Documentacion\Ensayo.pdf')

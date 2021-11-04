@@ -18,24 +18,28 @@ def home():
 def ObtenerDatos():
     return gestor.MostrarSalida()
 
+@app.route("/nxml", methods=['GET'])
+def nombre_xml():
+    global nom
+    nom = request.data
+    return nom
+
 @app.route('/Procesar', methods=['GET'])
 def Procesar():
     gestor.salidaAuto()
     gestor.ArchivoSalida()
     return '{"data":"Listo para mostrar"}'
 
-@app.route('/ResumenRango', methods=['GET'])
-def ObtenerResumenRango():
-    pass
+@app.route('/Ayuda', methods=['GET'])
+def Ayuda():
+    gestor.openEnsayo()
+    return gestor.AyudaDatosEstudiante()
 
-@app.route('/nit', methods=['GET'])
-def ObtenerGrafica():
-    pass
-
-@app.route('/Prueba', methods=['POST'])
+@app.route('/SubirXml', methods=['POST'])
 def prueba():
     xml_data = request.data
     archivo_xml = open("API\pr.xml", "wb")
+    #archivo_xml2 = open("frontend\ frontent\pr.xml", "wb")
     archivo_xml.write(xml_data)
     archivo_xml.close()
     gestor.AbrirArchivo()
